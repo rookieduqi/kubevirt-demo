@@ -48,7 +48,7 @@ import (
 )
 
 const vmiSubresourceURL = "/apis/subresources.kubevirt.io/%s/namespaces/%s/virtualmachineinstances/%s/%s"
-
+const vmSubresourceURL = "/apis/subresources.kubevirt.io/v1alpha3/namespaces/%s/virtualmachines/%s/%s"
 func (k *kubevirt) VirtualMachineInstance(namespace string) VirtualMachineInstanceInterface {
 	return &vmis{
 		restClient: k.restClient,
@@ -170,6 +170,23 @@ func (v *vmis) USBRedir(name string) (StreamInterface, error) {
 func (v *vmis) VNC(name string) (StreamInterface, error) {
 	return asyncSubresourceHelper(v.config, v.resource, v.namespace, name, "vnc", url.Values{})
 }
+
+func (v *vmis) Spice(name string) (*SpiceOptions, error) {
+	uri := fmt.Sprintf(vmSubresourceURL, v.namespace, name, "spice")
+	body, err := v.restClient.Get().RequestURI(uri).Do().Raw()
+	if err != nil {
+		return nil, err
+	}
+
+	spiceOptions := &SpiceOptions{}
+	err = json.Unmarshal(body, spiceOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	return spiceOptions, nil
+}
+
 
 func (v *vmis) PortForward(name string, port int, protocol string) (StreamInterface, error) {
 	return asyncSubresourceHelper(v.config, v.resource, v.namespace, name, buildPortForwardResourcePath(port, protocol), url.Values{})

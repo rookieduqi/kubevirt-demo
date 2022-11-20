@@ -227,6 +227,12 @@ type StreamInterface interface {
 	AsConn() net.Conn
 }
 
+type SpiceOptions struct {
+	Host  string `json:"host"`
+	Port  int32  `json:"port"`
+	Token string `json:"token"`
+}
+
 type VirtualMachineInstanceInterface interface {
 	Get(name string, options *metav1.GetOptions) (*v1.VirtualMachineInstance, error)
 	List(opts *metav1.ListOptions) (*v1.VirtualMachineInstanceList, error)
@@ -238,6 +244,7 @@ type VirtualMachineInstanceInterface interface {
 	SerialConsole(name string, options *SerialConsoleOptions) (StreamInterface, error)
 	USBRedir(vmiName string) (StreamInterface, error)
 	VNC(name string) (StreamInterface, error)
+	Spice(name string) (*SpiceOptions, error)
 	Screenshot(name string, options *v1.ScreenshotOptions) ([]byte, error)
 	PortForward(name string, port int, protocol string) (StreamInterface, error)
 	Pause(name string, pauseOptions *v1.PauseOptions) error

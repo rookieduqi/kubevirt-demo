@@ -327,6 +327,15 @@ func (app *virtAPIApp) composeSubresources() {
 			Operation(version.Version + "Console").
 			Doc("Open a websocket connection to a serial console on the specified VirtualMachineInstance."))
 
+		subws.Route(subws.GET(definitions.NamespacedResourcePath(subresourcesvmiGVR) + definitions.SubResourcePath(
+			"spice")).
+			To(subresourceApp.SpiceRequestHandler).
+			Param(definitions.NamespaceParam(subws)).Param(definitions.NameParam(subws)).
+			Operation("spice").
+			Doc("Spice into a VirtualMachine.").
+			Returns(http.StatusOK, "OK", nil).
+			Returns(http.StatusNotFound, "Not Found", nil))
+
 		subws.Route(subws.GET(definitions.NamespacedResourcePath(subresourcesvmiGVR) + definitions.SubResourcePath("vnc")).
 			To(subresourceApp.VNCRequestHandler).
 			Param(definitions.NamespaceParam(subws)).Param(definitions.NameParam(subws)).
@@ -527,6 +536,10 @@ func (app *virtAPIApp) composeSubresources() {
 					},
 					{
 						Name:       "virtualmachineinstances/vnc",
+						Namespaced: true,
+					},
+					{
+						Name:       "virtualmachineinstances/spice",
 						Namespaced: true,
 					},
 					{

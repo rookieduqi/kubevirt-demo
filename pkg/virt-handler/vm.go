@@ -91,6 +91,7 @@ import (
 	migrationproxy "kubevirt.io/kubevirt/pkg/virt-handler/migration-proxy"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
 	"kubevirt.io/kubevirt/pkg/watchdog"
+	spiceproxy "kubevirt.io/kubevirt/pkg/virt-handler/spice-proxy"
 )
 
 type netconf interface {
@@ -207,6 +208,7 @@ func NewController(
 		watchdogTimeoutSeconds:      watchdogTimeoutSeconds,
 		migrationProxy:              migrationProxy,
 		podIsolationDetector:        podIsolationDetector,
+		proxyManager:                spiceproxy.NewSpiceProxyManager(podIsolationDetector),
 		containerDiskMounter:        container_disk.NewMounter(podIsolationDetector, filepath.Join(virtPrivateDir, "container-disk-mount-state"), clusterConfig),
 		hotplugVolumeMounter:        hotplug_volume.NewVolumeMounter(filepath.Join(virtPrivateDir, "hotplug-volume-mount-state"), kubeletPodsDir),
 		clusterConfig:               clusterConfig,
@@ -304,6 +306,7 @@ type VirtualMachineController struct {
 	capabilities                *nodelabellerapi.Capabilities
 	hostCpuModel                string
 	vmiExpectations             *controller.UIDTrackingControllerExpectations
+	proxyManager                spiceproxy.UnixToTcpProxyManager
 }
 
 type virtLauncherCriticalSecurebootError struct {
@@ -2178,7 +2181,7 @@ func (d *VirtualMachineController) processVmDelete(vmi *v1.VirtualMachineInstanc
 
 		// pending deletion.
 		d.recorder.Event(vmi, k8sv1.EventTypeNormal, v1.Deleted.String(), VMISignalDeletion)
-
+		d.proxyManager.StopListener(vmi.Namespace, vmi.Name)
 		err = client.DeleteDomain(vmi)
 		if err != nil && !cmdclient.IsDisconnected(err) {
 			// Only report err if it wasn't the result of a disconnect.
@@ -2870,6 +2873,10 @@ func (d *VirtualMachineController) getMemoryDump(vmi *v1.VirtualMachineInstance)
 	return nil
 }
 
+func (d *VirtualMachineController) handleSpiceProxy(vmi *v1.VirtualMachineInstance) error {
+	return d.proxyManager.StartListener(vmi.Namespace, vmi.Name, vmi)
+}
+
 func (d *VirtualMachineController) processVmUpdate(vmi *v1.VirtualMachineInstance, domain *api.Domain) error {
 
 	isUnresponsive, isInitialized, err := d.isLauncherClientUnresponsive(vmi)
@@ -2884,6 +2891,11 @@ func (d *VirtualMachineController) processVmUpdate(vmi *v1.VirtualMachineInstanc
 	}
 
 	d.handlePostMigrationProxyCleanup(vmi)
+
+	err = d.handleSpiceProxy(vmi)
+	if err != nil {
+		return fmt.Errorf("failed to handle spice proxy: %v", err)
+	}
 
 	if d.isPreMigrationTarget(vmi) {
 		return d.vmUpdateHelperMigrationTarget(vmi)

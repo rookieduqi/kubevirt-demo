@@ -228,6 +228,8 @@ type VirtualMachineInstanceStatus struct {
 	// +optional
 	QOSClass *k8sv1.PodQOSClass `json:"qosClass,omitempty"`
 
+	SpiceConnection *SpiceConnection   `json:"spiceConnection"`
+
 	// LauncherContainerImageVersion indicates what container image is currently active for the vmi.
 	LauncherContainerImageVersion string `json:"launcherContainerImageVersion,omitempty"`
 
@@ -817,6 +819,11 @@ const (
 	// Used on VirtualMachineInstance.
 	IgnitionAnnotation           string = "kubevirt.io/ignitiondata"
 	PlacePCIDevicesOnRootComplex string = "kubevirt.io/placePCIDevicesOnRootComplex"
+
+	// Spice service name
+	SpiceServiceName = "virt-spice"
+	// Spice token VM label
+	SpiceTokenLabel = "spice-token"
 
 	// This label represents supported cpu features on the node
 	CPUFeatureLabel = "cpu-feature.node.kubevirt.io/"
@@ -2477,4 +2484,26 @@ type PreferenceMatcher struct {
 	//
 	// +optional
 	RevisionName string `json:"revisionName,omitempty"`
+}
+
+// ---
+// +k8s:openapi-gen=true
+type SpiceConnection struct {
+	SpiceToken   *SpiceToken   `json:"spiceToken,omitempty"`
+	SpiceHandler *SpiceHandler `json:"spiceHandler,omitempty"`
+}
+
+// SpiceToken represents the object for a spice connection token
+// ---
+// +k8s:openapi-gen=true
+type SpiceToken struct {
+	Token          string      `json:"token,omitempty"`
+	ExparationTime metav1.Time `json:"exparationTime,omitempty"`
+}
+
+// ---
+// +k8s:openapi-gen=true
+type SpiceHandler struct {
+	Host string `json:"host"`
+	Port int32  `json:"port"`
 }
