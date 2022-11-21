@@ -2,6 +2,7 @@ package virtctl
 
 import (
 	"fmt"
+	"kubevirt.io/kubevirt/pkg/virtctl/spice"
 	"os"
 	"path/filepath"
 	"strings"
@@ -83,6 +84,7 @@ func NewVirtctlCommand() (*cobra.Command, clientcmd.ClientConfig) {
 		console.NewCommand(clientConfig),
 		usbredir.NewCommand(clientConfig),
 		vnc.NewCommand(clientConfig),
+		spice.NewCommand(clientConfig),
 		scp.NewCommand(clientConfig),
 		ssh.NewCommand(clientConfig),
 		portforward.NewCommand(clientConfig),

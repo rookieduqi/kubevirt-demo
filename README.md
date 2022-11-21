@@ -203,3 +203,41 @@ spice连接使用传统的spice协议，没有websocket连接和virtctl二进制
 9、virt-handler 代理从 virt-spice 到与 qemu 进程相关的 unix 套接字的 tcp 连接的流量
 ```
 
+#### 五、编译调试和安装
+**GO**
+```
+目前kubevirt的最新版本需要go1.19以上支持,go mod tidy的时候需要本地有相应的版本，或者在go.mod修改相应版本
+
+
+Linux安装如下：
+wget https://golang.google.cn/dl/go1.19.3.linux-amd64.tar.gz    
+tar zxf go1.19.3.linux-amd64.tar.gz  -C /usr/local/
+
+vim ~/.bashrc
+export GOROOT=/usr/local/go
+export GOPATH=/home/duqi/golang
+export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+
+go env -w GOPROXY=https://goproxy.cn,direct
+
+go version
+
+```
+
+
+**Kubevirt**
+```
+如果生成operator执行make即可，最后会在manifests/release目录下生成kubevirt-operator.yaml、kubevirt-cr.yaml
+用于在新的k8s环境中部署，代码修改
+遇到的问题详见文档
+
+
+调试目前采用替换Docker镜像方式进行替换更新，详见文档
+
+
+可以通过添加日志或者打印的方式去调试添加的代码，查看日志可以通过
+选择其中一个 pod 并获取其日志或者/var/log/pod/下面组件的日志:
+kubectl logs -n <KubeVirt Install Namespace> virt-handler-2m86x | head -n8
+kubectl logs -n <KubeVirt Install Namespace> virt-handler-2m86x
+
+```

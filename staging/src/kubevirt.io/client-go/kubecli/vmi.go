@@ -171,6 +171,10 @@ func (v *vmis) VNC(name string) (StreamInterface, error) {
 	return asyncSubresourceHelper(v.config, v.resource, v.namespace, name, "vnc", url.Values{})
 }
 
+func (v *vmis) Spice(name string) (StreamInterface, error) {
+	return asyncSubresourceHelper(v.config, v.resource, v.namespace, name, "spice", url.Values{})
+}
+
 func (v *vmis) PortForward(name string, port int, protocol string) (StreamInterface, error) {
 	return asyncSubresourceHelper(v.config, v.resource, v.namespace, name, buildPortForwardResourcePath(port, protocol), url.Values{})
 }

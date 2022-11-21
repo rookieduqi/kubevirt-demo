@@ -49,8 +49,10 @@ type ConsoleHandler struct {
 	podIsolationDetector isolation.PodIsolationDetector
 	serialStopChans      map[types.UID](chan struct{})
 	vncStopChans         map[types.UID](chan struct{})
+	spiceStopChans       map[types.UID](chan struct{})
 	serialLock           *sync.Mutex
 	vncLock              *sync.Mutex
+	spiceLock            *sync.Mutex
 	vmiInformer          cache.SharedIndexInformer
 	usbredir             map[types.UID]UsbredirHandlerVMI
 	usbredirLock         *sync.Mutex
@@ -65,8 +67,10 @@ func NewConsoleHandler(podIsolationDetector isolation.PodIsolationDetector, vmiI
 		podIsolationDetector: podIsolationDetector,
 		serialStopChans:      make(map[types.UID](chan struct{})),
 		vncStopChans:         make(map[types.UID](chan struct{})),
+		spiceStopChans:       make(map[types.UID](chan struct{})),
 		serialLock:           &sync.Mutex{},
 		vncLock:              &sync.Mutex{},
+		spiceLock:            &sync.Mutex{},
 		usbredirLock:         &sync.Mutex{},
 		vmiInformer:          vmiInformer,
 		usbredir:             make(map[types.UID]UsbredirHandlerVMI),
@@ -152,6 +156,25 @@ func (t *ConsoleHandler) VNCHandler(request *restful.Request, response *restful.
 	uid := vmi.GetUID()
 	stopChn := newStopChan(uid, t.vncLock, t.vncStopChans)
 	defer deleteStopChan(uid, stopChn, t.vncLock, t.vncStopChans)
+	t.stream(vmi, request, response, unixSocketDialer(vmi, unixSocketPath), stopChn)
+}
+
+func (t *ConsoleHandler) SpiceHandler(request *restful.Request, response *restful.Response) {
+	vmi, code, err := getVMI(request, t.vmiInformer)
+	if err != nil {
+		log.Log.Object(vmi).Reason(err).Error(failedRetrieveVMI)
+		response.WriteError(code, err)
+		return
+	}
+	unixSocketPath, err := t.getUnixSocketPath(vmi, "virt-spice")
+	if err != nil {
+		log.Log.Object(vmi).Reason(err).Error("Failed finding unix socket for SPICE console")
+		response.WriteError(http.StatusBadRequest, err)
+		return
+	}
+	uid := vmi.GetUID()
+	stopChn := newStopChan(uid, t.spiceLock, t.spiceStopChans)
+	defer deleteStopChan(uid, stopChn, t.spiceLock, t.spiceStopChans)
 	t.stream(vmi, request, response, unixSocketDialer(vmi, unixSocketPath), stopChn)
 }
 
